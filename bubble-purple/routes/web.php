@@ -27,9 +27,10 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
+// Welcome/Home route
 Route::get('/', function () {
     return view('welcome');
-});
+})->name('welcome');
 
 // Authentication Routes
 Route::middleware('guest')->group(function () {
@@ -43,9 +44,9 @@ Route::post('logout', [LoginController::class, 'destroy'])->name('logout');
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard', function () {
-        if (auth()->user()->role->slug === 'admin') {
+        if (auth()->user()->role->name === 'admin') {
             return redirect()->route('admin.dashboard');
-        } elseif (auth()->user()->role->slug === 'employee') {
+        } elseif (auth()->user()->role->name === 'employee') {
             return redirect()->route('employee.dashboard');
         } else {
             return redirect()->route('customer.dashboard');
@@ -87,6 +88,14 @@ Route::middleware(['auth'])->group(function () {
         
         // Transaction Management
         Route::resource('transactions', EmployeeTransactionController::class);
+        
+        // Orders
+        Route::get('/orders/create', [App\Http\Controllers\Employee\OrderController::class, 'create'])->name('orders.create');
+        Route::post('/orders', [App\Http\Controllers\Employee\OrderController::class, 'store'])->name('orders.store');
+        
+        // Transactions
+        Route::get('/transactions', [App\Http\Controllers\Employee\TransactionController::class, 'index'])->name('transactions.index');
+        Route::get('/transactions/{transaction}', [App\Http\Controllers\Employee\TransactionController::class, 'show'])->name('transactions.show');
     });
 
     // Customer Routes

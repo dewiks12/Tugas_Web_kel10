@@ -25,6 +25,10 @@ class User extends Authenticatable
         'role_id',
         'branch_id',
         'is_active',
+        'phone',
+        'address',
+        'telegram_id',
+        'whatsapp'
     ];
 
     /**

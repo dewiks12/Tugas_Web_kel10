@@ -47,8 +47,8 @@ class DashboardController extends Controller
 
         // Get branch target
         $branchTarget = $branch->targets()
-            ->where('start_date', '<=', now())
-            ->where('end_date', '>=', now())
+            ->where('month', now()->month)
+            ->where('year', now()->year)
             ->first();
 
         // Get recent transactions

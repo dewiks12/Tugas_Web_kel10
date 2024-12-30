@@ -14,15 +14,12 @@ return new class extends Migration
         Schema::create('laundry_targets', function (Blueprint $table) {
             $table->id();
             $table->foreignId('branch_id')->constrained()->cascadeOnDelete();
+            $table->integer('month');
+            $table->integer('year');
             $table->decimal('target_amount', 12, 2);
             $table->decimal('achieved_amount', 12, 2)->default(0);
-            $table->integer('target_orders');
-            $table->integer('achieved_orders')->default(0);
-            $table->date('start_date');
-            $table->date('end_date');
-            $table->text('notes')->nullable();
+            $table->boolean('is_achieved')->default(false);
             $table->timestamps();
-            $table->softDeletes();
         });
     }
 

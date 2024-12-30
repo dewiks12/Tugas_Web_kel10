@@ -1,10 +1,18 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="flex items-center space-x-3">
-            <svg class="w-8 h-8 text-purple-600 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-            </svg>
-            <h2 class="text-xl font-semibold text-gray-800 dark:text-white">Employee Dashboard</h2>
+        <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <svg class="w-8 h-8 text-purple-600 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                </svg>
+                <h2 class="text-xl font-semibold text-gray-800 dark:text-white">Employee Dashboard</h2>
+            </div>
+            <a href="{{ route('employee.orders.create') }}" class="inline-flex items-center px-4 py-2 bg-purple-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-purple-700 focus:bg-purple-700 active:bg-purple-800 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition ease-in-out duration-150">
+                <svg class="w-5 h-5 mr-2 -ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                Create Order
+            </a>
         </div>
     </x-slot>
 
@@ -83,29 +91,13 @@
                             <div class="flex justify-between text-sm font-medium">
                                 <span class="text-purple-600 dark:text-purple-300">Revenue Target</span>
                                 <span class="text-purple-900 dark:text-purple-100">
-                                    {{ $branchTarget->amount_progress }}% (Rp {{ number_format($branchTarget->achieved_amount, 0, ',', '.') }} / {{ number_format($branchTarget->target_amount, 0, ',', '.') }})
+                                    {{ number_format(($branchTarget->target_amount > 0 ? ($branchTarget->achieved_amount / $branchTarget->target_amount * 100) : 0), 1) }}%
+                                    (Rp {{ number_format($branchTarget->achieved_amount, 0, ',', '.') }} / {{ number_format($branchTarget->target_amount, 0, ',', '.') }})
                                 </span>
                             </div>
                             <div class="mt-2 relative pt-1">
                                 <div class="overflow-hidden h-2 text-xs flex rounded bg-purple-200 dark:bg-purple-700">
-                                    <div style="width: {{ $branchTarget->amount_progress }}%" 
-                                         class="animate-pulse shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-purple-500">
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Orders Target -->
-                        <div class="transform hover:scale-105 transition-transform duration-200">
-                            <div class="flex justify-between text-sm font-medium">
-                                <span class="text-purple-600 dark:text-purple-300">Orders Target</span>
-                                <span class="text-purple-900 dark:text-purple-100">
-                                    {{ $branchTarget->orders_progress }}% ({{ $branchTarget->achieved_orders }} / {{ $branchTarget->target_orders }})
-                                </span>
-                            </div>
-                            <div class="mt-2 relative pt-1">
-                                <div class="overflow-hidden h-2 text-xs flex rounded bg-purple-200 dark:bg-purple-700">
-                                    <div style="width: {{ $branchTarget->orders_progress }}%" 
+                                    <div style="width: {{ $branchTarget->target_amount > 0 ? ($branchTarget->achieved_amount / $branchTarget->target_amount * 100) : 0 }}%" 
                                          class="animate-pulse shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-purple-500">
                                     </div>
                                 </div>
@@ -138,7 +130,11 @@
                                 </div>
                                 <div class="mt-2 relative pt-1">
                                     <div class="overflow-hidden h-2 text-xs flex rounded bg-purple-200 dark:bg-purple-700">
-                                        <div style="width: {{ ($ordersByStatus[$status] ?? 0) / array_sum($ordersByStatus) * 100 }}%" 
+                                        @php
+                                            $total = array_sum($ordersByStatus);
+                                            $percentage = $total > 0 ? (($ordersByStatus[$status] ?? 0) / $total * 100) : 0;
+                                        @endphp
+                                        <div style="width: {{ $percentage }}%" 
                                              class="animate-pulse shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center 
                                              {{ $status === 'pending' ? 'bg-yellow-500' : 
                                                 ($status === 'processing' ? 'bg-blue-500' : 
@@ -169,7 +165,7 @@
                 </div>
                 <div class="card-body">
                     <div class="space-y-4">
-                        @foreach($recentTransactions as $transaction)
+                        @forelse($recentTransactions as $transaction)
                             <div class="flex items-center justify-between transform hover:scale-105 transition-transform duration-200">
                                 <div class="flex items-center">
                                     <div>
@@ -193,7 +189,11 @@
                                     </p>
                                 </div>
                             </div>
-                        @endforeach
+                        @empty
+                            <div class="text-center text-gray-500 dark:text-gray-400">
+                                No recent transactions
+                            </div>
+                        @endforelse
                     </div>
                 </div>
             </div>
