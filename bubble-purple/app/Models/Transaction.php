@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Notifications\TransactionStatusChanged;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -11,144 +10,74 @@ class Transaction extends Model
 {
     use HasFactory, SoftDeletes;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
-     */
     protected $fillable = [
-        'invoice_number',
-        'user_id',
-        'branch_id',
         'customer_id',
+        'branch_id',
         'total_amount',
         'status',
-        'pickup_date',
         'notes',
+        'payment_method',
+        'payment_status',
+        'payment_proof',
+        'payment_date',
+        'created_by',
+        'invoice_number',
+        'pickup_date'
     ];
 
-    /**
-     * The attributes that should be cast.
-     *
-     * @var array<string, string>
-     */
     protected $casts = [
-        'total_amount' => 'decimal:2',
+        'payment_date' => 'datetime',
         'pickup_date' => 'datetime',
+        'total_amount' => 'decimal:2',
     ];
 
-    /**
-     * The model's default values for attributes.
-     *
-     * @var array
-     */
-    protected $attributes = [
-        'status' => 'pending',
-    ];
-
-    /**
-     * The "booted" method of the model.
-     */
-    protected static function booted(): void
+    public function customer()
     {
-        static::updating(function ($transaction) {
-            // If status is changed, notify the customer
-            if ($transaction->isDirty('status')) {
-                $oldStatus = $transaction->getOriginal('status');
-                $transaction->customer->notify(new TransactionStatusChanged($transaction, $oldStatus));
-            }
-        });
+        return $this->belongsTo(User::class, 'customer_id');
     }
 
-    /**
-     * Get the user who created the transaction.
-     */
-    public function user()
-    {
-        return $this->belongsTo(User::class);
-    }
-
-    /**
-     * Get the branch associated with the transaction.
-     */
     public function branch()
     {
         return $this->belongsTo(Branch::class);
     }
 
-    /**
-     * Get the customer associated with the transaction.
-     */
-    public function customer()
+    public function transactionServices()
     {
-        return $this->belongsTo(Customer::class);
+        return $this->hasMany(TransactionService::class);
     }
 
-    /**
-     * Get the items for the transaction.
-     */
+    // Alias for transactionServices for backward compatibility
     public function items()
     {
-        return $this->hasMany(TransactionItem::class);
+        return $this->transactionServices();
     }
 
-    /**
-     * Get the services for the transaction.
-     */
-    public function services()
+    public function createdBy()
     {
-        return $this->belongsToMany(Service::class, 'transaction_items')
-            ->withPivot('quantity', 'price', 'subtotal')
-            ->withTimestamps();
+        return $this->belongsTo(User::class, 'created_by');
     }
 
-    /**
-     * Get the status label.
-     */
-    public function getStatusLabelAttribute()
-    {
-        return match ($this->status) {
-            'pending' => 'Pending',
-            'processing' => 'Processing',
-            'completed' => 'Completed',
-            'cancelled' => 'Cancelled',
-            default => 'Unknown',
-        };
-    }
-
-    /**
-     * Get the status color for badges.
-     */
+    // Status color accessor
     public function getStatusColorAttribute()
     {
-        return match ($this->status) {
-            'pending' => 'yellow',
-            'processing' => 'blue',
+        return match($this->status) {
             'completed' => 'green',
+            'processing' => 'blue',
+            'pending' => 'yellow',
             'cancelled' => 'red',
-            default => 'gray',
+            default => 'gray'
         };
     }
 
-    /**
-     * Calculate total amount based on items.
-     */
-    public function calculateTotal()
+    // Status label accessor
+    public function getStatusLabelAttribute()
     {
-        $this->total_amount = $this->items->sum('subtotal');
-        $this->save();
+        return ucfirst($this->status);
     }
 
-    /**
-     * Update transaction status.
-     */
-    public function updateStatus(string $status)
+    // Generate invoice number
+    public static function generateInvoiceNumber()
     {
-        if (in_array($status, ['pending', 'processing', 'completed', 'cancelled'])) {
-            $this->status = $status;
-            $this->save();
-            return true;
-        }
-        return false;
+        return 'INV-' . date('Ymd') . '-' . strtoupper(substr(uniqid(), -4));
     }
 }

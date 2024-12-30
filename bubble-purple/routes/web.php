@@ -60,27 +60,30 @@ Route::middleware(['auth'])->group(function () {
     });
 
     // Admin Routes
-    Route::middleware(['checkRole:admin'])->name('admin.')->prefix('admin')->group(function () {
+    Route::middleware(['auth', 'checkRole:admin'])->prefix('admin')->name('admin.')->group(function () {
         Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
+
+        // Transaction routes
+        Route::patch('/transactions/{transaction}/status', [AdminTransactionController::class, 'updateStatus'])->name('transactions.update-status');
+        Route::get('/transactions/{transaction}', [AdminTransactionController::class, 'show'])->name('transactions.show');
         
-        // User Management
-        Route::resource('users', UserController::class);
-        
-        // Branch Management
-        Route::resource('branches', BranchController::class);
-        
+        // Free API endpoints
+        Route::get('/api/currency', [AdminTransactionController::class, 'getCurrencyRates'])->name('api.currency');
+        Route::get('/api/weather', [AdminTransactionController::class, 'getWeather'])->name('api.weather');
+
+        // Orders
+        Route::get('/orders/create', [App\Http\Controllers\Admin\OrderController::class, 'create'])->name('orders.create');
+        Route::post('/orders', [App\Http\Controllers\Admin\OrderController::class, 'store'])->name('orders.store');
+
+        // Customer Management
+        Route::resource('customers', App\Http\Controllers\Admin\CustomerController::class);
+
         // Service Management
-        Route::resource('services', ServiceController::class);
-        
-        // Transaction Management
-        Route::resource('transactions', AdminTransactionController::class);
-        
-        // Settings
-        Route::resource('settings', SettingController::class)->only(['index', 'store']);
+        Route::resource('services', App\Http\Controllers\Admin\ServiceController::class);
     });
 
     // Employee Routes
-    Route::middleware(['checkRole:employee'])->name('employee.')->prefix('employee')->group(function () {
+    Route::middleware(['auth', 'checkRole:employee'])->prefix('employee')->name('employee.')->group(function () {
         Route::get('/dashboard', [EmployeeDashboardController::class, 'index'])->name('dashboard');
         
         // Customer Management
@@ -88,18 +91,15 @@ Route::middleware(['auth'])->group(function () {
         
         // Transaction Management
         Route::resource('transactions', EmployeeTransactionController::class);
+        Route::patch('/transactions/{transaction}/status', [EmployeeTransactionController::class, 'updateStatus'])->name('transactions.update-status');
         
         // Orders
         Route::get('/orders/create', [App\Http\Controllers\Employee\OrderController::class, 'create'])->name('orders.create');
         Route::post('/orders', [App\Http\Controllers\Employee\OrderController::class, 'store'])->name('orders.store');
-        
-        // Transactions
-        Route::get('/transactions', [App\Http\Controllers\Employee\TransactionController::class, 'index'])->name('transactions.index');
-        Route::get('/transactions/{transaction}', [App\Http\Controllers\Employee\TransactionController::class, 'show'])->name('transactions.show');
     });
 
     // Customer Routes
-    Route::middleware(['checkRole:customer'])->name('customer.')->prefix('customer')->group(function () {
+    Route::middleware(['auth', 'checkRole:customer'])->prefix('customer')->name('customer.')->group(function () {
         Route::get('/dashboard', [CustomerDashboardController::class, 'index'])->name('dashboard');
         
         // Transaction History

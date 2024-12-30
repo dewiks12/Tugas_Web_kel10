@@ -5,74 +5,73 @@ namespace App\Http\Controllers\Employee;
 use App\Http\Controllers\Controller;
 use App\Models\Transaction;
 use Carbon\Carbon;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
     public function index()
     {
-        $user = Auth::user();
-        $branch = $user->branch;
+        $branch = auth()->user()->branch;
 
-        // Get today's statistics
-        $today = Carbon::today();
-        $todayStats = [
-            'orders' => Transaction::where('branch_id', $branch->id)
-                ->whereDate('created_at', $today)
-                ->count(),
-            'revenue' => Transaction::where('branch_id', $branch->id)
-                ->whereDate('created_at', $today)
-                ->sum('total_amount'),
-            'pending_orders' => Transaction::where('branch_id', $branch->id)
-                ->whereDate('created_at', $today)
-                ->where('status', 'pending')
-                ->count(),
-        ];
-
-        // Get this month's statistics
-        $thisMonth = Carbon::now()->startOfMonth();
-        $monthlyStats = [
-            'orders' => Transaction::where('branch_id', $branch->id)
-                ->whereMonth('created_at', $thisMonth->month)
-                ->count(),
-            'revenue' => Transaction::where('branch_id', $branch->id)
-                ->whereMonth('created_at', $thisMonth->month)
-                ->sum('total_amount'),
-            'completed_orders' => Transaction::where('branch_id', $branch->id)
-                ->whereMonth('created_at', $thisMonth->month)
-                ->where('status', 'completed')
-                ->count(),
-        ];
-
-        // Get branch target
-        $branchTarget = $branch->targets()
-            ->where('month', now()->month)
-            ->where('year', now()->year)
-            ->first();
-
-        // Get recent transactions
-        $recentTransactions = Transaction::with('customer')
+        // Get branch transactions
+        $recentTransactions = Transaction::with(['customer', 'transactionServices.service'])
             ->where('branch_id', $branch->id)
             ->latest()
-            ->take(5)
+            ->take(10)
             ->get();
 
-        // Get orders by status
-        $ordersByStatus = Transaction::where('branch_id', $branch->id)
-            ->whereMonth('created_at', $thisMonth->month)
-            ->selectRaw('status, count(*) as count')
-            ->groupBy('status')
-            ->get()
-            ->pluck('count', 'status')
-            ->toArray();
+        // Transaction statistics
+        $totalTransactions = Transaction::where('branch_id', $branch->id)->count();
+        $pendingTransactions = Transaction::where('branch_id', $branch->id)
+            ->where('status', 'pending')
+            ->count();
+        $processingTransactions = Transaction::where('branch_id', $branch->id)
+            ->where('status', 'processing')
+            ->count();
+        $completedTransactions = Transaction::where('branch_id', $branch->id)
+            ->where('status', 'completed')
+            ->count();
+
+        // Financial statistics
+        $totalRevenue = Transaction::where('branch_id', $branch->id)
+            ->where('status', 'completed')
+            ->sum('total_amount');
+        $monthlyRevenue = Transaction::where('branch_id', $branch->id)
+            ->where('status', 'completed')
+            ->whereMonth('created_at', Carbon::now()->month)
+            ->sum('total_amount');
+
+        // Monthly trend
+        $monthlyTrend = Transaction::where('branch_id', $branch->id)
+            ->where('status', 'completed')
+            ->whereYear('created_at', Carbon::now()->year)
+            ->select(
+                DB::raw('MONTH(created_at) as month'),
+                DB::raw('SUM(total_amount) as revenue'),
+                DB::raw('COUNT(*) as count')
+            )
+            ->groupBy('month')
+            ->orderBy('month')
+            ->get();
+
+        // Active orders (pending and processing)
+        $activeOrders = Transaction::with(['customer', 'transactionServices.service'])
+            ->where('branch_id', $branch->id)
+            ->whereIn('status', ['pending', 'processing'])
+            ->latest()
+            ->get();
 
         return view('employee.dashboard', compact(
-            'todayStats',
-            'monthlyStats',
-            'branchTarget',
             'recentTransactions',
-            'ordersByStatus'
+            'totalTransactions',
+            'pendingTransactions',
+            'processingTransactions',
+            'completedTransactions',
+            'totalRevenue',
+            'monthlyRevenue',
+            'monthlyTrend',
+            'activeOrders',
+            'branch'
         ));
     }
 }

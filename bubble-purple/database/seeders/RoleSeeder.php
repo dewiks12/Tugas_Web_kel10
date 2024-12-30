@@ -14,23 +14,28 @@ class RoleSeeder extends Seeder
             [
                 'name' => 'admin',
                 'display_name' => 'Administrator',
+                'slug' => 'admin'
             ],
             [
                 'name' => 'employee',
                 'display_name' => 'Employee',
+                'slug' => 'employee'
             ],
             [
                 'name' => 'customer',
                 'display_name' => 'Customer',
+                'slug' => 'customer'
             ],
         ];
 
         foreach ($roles as $role) {
-            Role::create([
-                'name' => $role['name'],
-                'display_name' => $role['display_name'],
-                'slug' => Str::slug($role['name']),
-            ]);
+            Role::updateOrCreate(
+                ['name' => $role['name']],
+                [
+                    'display_name' => $role['display_name'],
+                    'slug' => $role['slug']
+                ]
+            );
         }
     }
 }

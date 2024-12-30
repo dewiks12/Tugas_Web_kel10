@@ -3,73 +3,71 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Branch;
-use App\Models\LaundryTarget;
-use App\Models\Service;
 use App\Models\Transaction;
+use App\Models\Branch;
 use App\Models\User;
 use Carbon\Carbon;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
     public function index()
     {
-        // Get statistics for today
-        $today = Carbon::today();
-        $todayStats = [
-            'orders' => Transaction::whereDate('created_at', $today)->count(),
-            'revenue' => Transaction::whereDate('created_at', $today)->sum('total_amount'),
-            'new_customers' => User::whereDate('created_at', $today)
-                ->whereHas('role', fn($q) => $q->where('slug', 'customer'))
-                ->count(),
-        ];
-
-        // Get statistics for this month
-        $thisMonth = Carbon::now()->startOfMonth();
-        $monthlyStats = [
-            'orders' => Transaction::whereMonth('created_at', $thisMonth->month)->count(),
-            'revenue' => Transaction::whereMonth('created_at', $thisMonth->month)->sum('total_amount'),
-            'new_customers' => User::whereMonth('created_at', $thisMonth->month)
-                ->whereHas('role', fn($q) => $q->where('slug', 'customer'))
-                ->count(),
-        ];
-
-        // Get active targets
-        $activeTargets = LaundryTarget::with('branch')
-            ->where('start_date', '<=', now())
-            ->where('end_date', '>=', now())
-            ->get();
-
-        // Get revenue by branch for the current month
-        $revenueByBranch = Transaction::select('branch_id', DB::raw('sum(total_amount) as total'))
-            ->whereMonth('created_at', $thisMonth->month)
-            ->groupBy('branch_id')
-            ->with('branch')
-            ->get();
-
-        // Get popular services
-        $popularServices = Service::withCount(['transactionItems as usage_count' => function($query) use ($thisMonth) {
-            $query->whereMonth('created_at', $thisMonth->month);
-        }])
-        ->orderByDesc('usage_count')
-        ->take(5)
-        ->get();
-
-        // Get recent transactions
-        $recentTransactions = Transaction::with(['customer', 'branch'])
+        // Get all transactions
+        $recentTransactions = Transaction::with(['customer', 'branch', 'transactionServices.service'])
             ->latest()
-            ->take(5)
+            ->take(10)
+            ->get();
+
+        // Transaction statistics
+        $totalTransactions = Transaction::count();
+        $pendingTransactions = Transaction::where('status', 'pending')->count();
+        $processingTransactions = Transaction::where('status', 'processing')->count();
+        $completedTransactions = Transaction::where('status', 'completed')->count();
+
+        // Financial statistics
+        $totalRevenue = Transaction::where('status', 'completed')->sum('total_amount');
+        $monthlyRevenue = Transaction::where('status', 'completed')
+            ->whereMonth('created_at', Carbon::now()->month)
+            ->sum('total_amount');
+
+        // Branch statistics
+        $branchRevenue = Branch::withSum(['transactions' => function($query) {
+            $query->where('status', 'completed');
+        }], 'total_amount')
+            ->withCount(['transactions as pending_count' => function($query) {
+                $query->where('status', 'pending');
+            }])
+            ->withCount(['transactions as processing_count' => function($query) {
+                $query->where('status', 'processing');
+            }])
+            ->withCount(['transactions as completed_count' => function($query) {
+                $query->where('status', 'completed');
+            }])
+            ->get();
+
+        // Monthly trend
+        $monthlyTrend = Transaction::where('status', 'completed')
+            ->whereYear('created_at', Carbon::now()->year)
+            ->select(
+                DB::raw('MONTH(created_at) as month'),
+                DB::raw('SUM(total_amount) as revenue'),
+                DB::raw('COUNT(*) as count')
+            )
+            ->groupBy('month')
+            ->orderBy('month')
             ->get();
 
         return view('admin.dashboard', compact(
-            'todayStats',
-            'monthlyStats',
-            'activeTargets',
-            'revenueByBranch',
-            'popularServices',
-            'recentTransactions'
+            'recentTransactions',
+            'totalTransactions',
+            'pendingTransactions',
+            'processingTransactions',
+            'completedTransactions',
+            'totalRevenue',
+            'monthlyRevenue',
+            'branchRevenue',
+            'monthlyTrend'
         ));
     }
 }

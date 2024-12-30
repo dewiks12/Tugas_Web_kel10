@@ -9,108 +9,76 @@ use Illuminate\Support\Str;
 
 class ServiceController extends Controller
 {
-    /**
-     * Display a listing of the services.
-     */
-    public function index(Request $request)
+    public function index()
     {
-        $query = Service::query();
-
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('description', 'like', "%{$search}%");
-            });
-        }
-
-        if ($request->filled('status')) {
-            $query->where('is_active', $request->status === 'active');
-        }
-
-        $services = $query->latest()->paginate(10);
-
+        $services = Service::latest()->paginate(10);
         return view('admin.services.index', compact('services'));
     }
 
-    /**
-     * Show the form for creating a new service.
-     */
     public function create()
     {
-        return view('admin.services.form');
+        return view('admin.services.create');
     }
 
-    /**
-     * Store a newly created service in storage.
-     */
     public function store(Request $request)
     {
         $request->validate([
-            'name' => 'required|string|max:255|unique:services',
-            'description' => 'nullable|string|max:1000',
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string',
             'price' => 'required|numeric|min:0',
-            'is_active' => 'boolean',
+            'unit' => 'required|string|max:50',
+            'is_active' => 'boolean'
         ]);
 
-        $service = Service::create([
+        Service::create([
             'name' => $request->name,
-            'slug' => Str::slug($request->name),
             'description' => $request->description,
             'price' => $request->price,
-            'is_active' => $request->boolean('is_active', true),
+            'unit' => $request->unit,
+            'is_active' => $request->is_active ?? true,
         ]);
 
-        return redirect()
-            ->route('admin.services.index')
+        return redirect()->route('admin.services.index')
             ->with('success', 'Service created successfully.');
     }
 
-    /**
-     * Show the form for editing the specified service.
-     */
-    public function edit(Service $service)
+    public function show(Service $service)
     {
-        return view('admin.services.form', compact('service'));
+        return view('admin.services.show', compact('service'));
     }
 
-    /**
-     * Update the specified service in storage.
-     */
+    public function edit(Service $service)
+    {
+        return view('admin.services.edit', compact('service'));
+    }
+
     public function update(Request $request, Service $service)
     {
         $request->validate([
-            'name' => 'required|string|max:255|unique:services,name,' . $service->id,
-            'description' => 'nullable|string|max:1000',
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string',
             'price' => 'required|numeric|min:0',
-            'is_active' => 'boolean',
+            'unit' => 'required|string|max:50',
+            'is_active' => 'boolean'
         ]);
 
         $service->update([
             'name' => $request->name,
-            'slug' => Str::slug($request->name),
             'description' => $request->description,
             'price' => $request->price,
-            'is_active' => $request->boolean('is_active', true),
+            'unit' => $request->unit,
+            'is_active' => $request->is_active ?? false,
         ]);
 
-        return redirect()
-            ->route('admin.services.index')
+        return redirect()->route('admin.services.index')
             ->with('success', 'Service updated successfully.');
     }
 
-    /**
-     * Remove the specified service from storage.
-     */
     public function destroy(Service $service)
     {
-        try {
-            $service->delete();
-            return redirect()
-                ->route('admin.services.index')
-                ->with('success', 'Service deleted successfully.');
-        } catch (\Exception $e) {
-            return back()->with('error', 'Failed to delete service. Please try again.');
-        }
+        $service->delete();
+
+        return redirect()->route('admin.services.index')
+            ->with('success', 'Service deleted successfully.');
     }
 }

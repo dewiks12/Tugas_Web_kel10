@@ -73,7 +73,15 @@ class User extends Authenticatable
      */
     public function transactions()
     {
-        return $this->hasMany(Transaction::class);
+        return $this->hasMany(Transaction::class, 'customer_id');
+    }
+
+    /**
+     * Check if the user has a specific role.
+     */
+    public function hasRole(string $roleName): bool
+    {
+        return $this->role && $this->role->name === $roleName;
     }
 
     /**
@@ -81,7 +89,7 @@ class User extends Authenticatable
      */
     public function isAdmin(): bool
     {
-        return $this->role->slug === 'admin';
+        return $this->hasRole('admin');
     }
 
     /**
@@ -89,7 +97,7 @@ class User extends Authenticatable
      */
     public function isEmployee(): bool
     {
-        return $this->role->slug === 'employee';
+        return $this->hasRole('employee');
     }
 
     /**
@@ -97,6 +105,6 @@ class User extends Authenticatable
      */
     public function isCustomer(): bool
     {
-        return $this->role->slug === 'customer';
+        return $this->hasRole('customer');
     }
 }
