@@ -1,0 +1,26 @@
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use App\Models\Service;
+use Illuminate\Http\Request;
+
+class ServiceController extends Controller
+{
+    public function index()
+    {
+        $services = Service::where('is_active', true)->get();
+        
+        return response()->json([
+            'services' => $services
+        ]);
+    }
+
+    public function show(Service $service)
+    {
+        return response()->json([
+            'service' => $service
+        ]);
+    }
+} 
