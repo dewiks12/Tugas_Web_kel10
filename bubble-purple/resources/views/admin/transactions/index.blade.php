@@ -1,112 +1,147 @@
-<x-admin-layout>
-    <div class="sm:flex sm:items-center">
-        <div class="sm:flex-auto">
-            <h1 class="text-xl font-semibold text-gray-900 dark:text-white">Transactions</h1>
-            <p class="mt-2 text-sm text-gray-700 dark:text-gray-300">A list of all transactions in the system including their invoice number, customer, amount, and status.</p>
-        </div>
-        <div class="mt-4 sm:mt-0 sm:ml-16 sm:flex-none">
-            <a href="{{ route('admin.transactions.create') }}" class="inline-flex items-center justify-center rounded-md border border-transparent bg-purple-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 sm:w-auto">
-                Add Transaction
-            </a>
-        </div>
+@extends('layouts.app')
+
+@section('content')
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="h3 mb-0">Transactions</h2>
+        <a href="{{ route('admin.transactions.create') }}" class="btn btn-primary">
+            <i class="bi bi-plus-lg me-1"></i> New Transaction
+        </a>
     </div>
 
+    <!-- Alert Messages -->
+    @if (session('success'))
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            {{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
+
     <!-- Filters -->
-    <div class="mt-8 bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden">
-        <div class="p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700">
-            <form action="{{ route('admin.transactions.index') }}" method="GET" class="space-y-4 sm:flex sm:items-center sm:space-y-0 sm:space-x-4">
-                <div class="sm:w-1/4">
-                    <label for="search" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Search</label>
-                    <input type="text" name="search" id="search" value="{{ request('search') }}" class="mt-1 block w-full border-gray-300 dark:border-gray-600 dark:bg-gray-700 rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500 sm:text-sm" placeholder="Invoice number or customer name">
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <form action="{{ route('admin.transactions.index') }}" method="GET" class="row g-3">
+                <div class="col-md-3">
+                    <label for="search" class="form-label">Search</label>
+                    <input type="text" class="form-control" id="search" name="search" 
+                           value="{{ request('search') }}" placeholder="Invoice or customer name">
                 </div>
-                <div class="sm:w-1/4">
-                    <label for="branch" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Branch</label>
-                    <select id="branch" name="branch" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 dark:bg-gray-700 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm rounded-md">
+                <div class="col-md-2">
+                    <label for="status" class="form-label">Status</label>
+                    <select class="form-select" id="status" name="status">
+                        <option value="">All Status</option>
+                        <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Pending</option>
+                        <option value="processing" {{ request('status') == 'processing' ? 'selected' : '' }}>Processing</option>
+                        <option value="completed" {{ request('status') == 'completed' ? 'selected' : '' }}>Completed</option>
+                        <option value="cancelled" {{ request('status') == 'cancelled' ? 'selected' : '' }}>Cancelled</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="branch" class="form-label">Branch</label>
+                    <select class="form-select" id="branch" name="branch_id">
                         <option value="">All Branches</option>
                         @foreach($branches as $branch)
-                            <option value="{{ $branch->id }}" {{ request('branch') == $branch->id ? 'selected' : '' }}>{{ $branch->name }}</option>
+                            <option value="{{ $branch->id }}" {{ request('branch_id') == $branch->id ? 'selected' : '' }}>
+                                {{ $branch->name }}
+                            </option>
                         @endforeach
                     </select>
                 </div>
-                <div class="sm:w-1/4">
-                    <label for="status" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Status</label>
-                    <select id="status" name="status" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 dark:bg-gray-700 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm rounded-md">
-                        <option value="">All Status</option>
-                        <option value="pending" {{ request('status') === 'pending' ? 'selected' : '' }}>Pending</option>
-                        <option value="processing" {{ request('status') === 'processing' ? 'selected' : '' }}>Processing</option>
-                        <option value="completed" {{ request('status') === 'completed' ? 'selected' : '' }}>Completed</option>
-                        <option value="cancelled" {{ request('status') === 'cancelled' ? 'selected' : '' }}>Cancelled</option>
-                    </select>
+                <div class="col-md-2">
+                    <label for="date_from" class="form-label">Date From</label>
+                    <input type="date" class="form-control" id="date_from" name="date_from" 
+                           value="{{ request('date_from') }}">
                 </div>
-                <div class="sm:w-1/4 sm:flex sm:items-end">
-                    <button type="submit" class="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500">
-                        Filter
+                <div class="col-md-2">
+                    <label for="date_to" class="form-label">Date To</label>
+                    <input type="date" class="form-control" id="date_to" name="date_to" 
+                           value="{{ request('date_to') }}">
+                </div>
+                <div class="col-md-12 d-flex">
+                    <button type="submit" class="btn btn-primary me-2">
+                        <i class="bi bi-search me-1"></i> Filter
                     </button>
+                    <a href="{{ route('admin.transactions.index') }}" class="btn btn-secondary">
+                        <i class="bi bi-x-circle me-1"></i> Clear
+                    </a>
                 </div>
             </form>
         </div>
+    </div>
 
-        <!-- Transactions Table -->
-        <div class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                <thead class="bg-gray-50 dark:bg-gray-700">
-                    <tr>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Invoice</th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Customer</th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Branch</th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Amount</th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Pickup Date</th>
-                        <th scope="col" class="relative px-6 py-3">
-                            <span class="sr-only">Actions</span>
-                        </th>
-                    </tr>
-                </thead>
-                <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                    @foreach($transactions as $transaction)
-                    <tr>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="text-sm font-medium text-gray-900 dark:text-white">{{ $transaction->invoice_number }}</div>
-                            <div class="text-sm text-gray-500 dark:text-gray-300">{{ $transaction->created_at->format('d/m/Y H:i') }}</div>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="text-sm font-medium text-gray-900 dark:text-white">{{ $transaction->customer->name }}</div>
-                            <div class="text-sm text-gray-500 dark:text-gray-300">{{ $transaction->customer->phone }}</div>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="text-sm text-gray-900 dark:text-white">{{ $transaction->branch->name }}</div>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="text-sm text-gray-900 dark:text-white">{{ number_format($transaction->total_amount, 0, ',', '.') }}</div>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-{{ $transaction->status_color }}-100 text-{{ $transaction->status_color }}-800 dark:bg-{{ $transaction->status_color }}-800 dark:text-{{ $transaction->status_color }}-100">
-                                {{ $transaction->status_label }}
-                            </span>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="text-sm text-gray-900 dark:text-white">{{ $transaction->pickup_date?->format('d/m/Y H:i') ?? '-' }}</div>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                            <div class="flex justify-end space-x-3">
-                                <a href="{{ route('admin.transactions.show', $transaction) }}" class="text-purple-600 hover:text-purple-900 dark:text-purple-400 dark:hover:text-purple-300">View</a>
-                                <a href="{{ route('admin.transactions.edit', $transaction) }}" class="text-purple-600 hover:text-purple-900 dark:text-purple-400 dark:hover:text-purple-300">Edit</a>
-                                <form action="{{ route('admin.transactions.destroy', $transaction) }}" method="POST" class="inline-block">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300" onclick="return confirm('Are you sure you want to delete this transaction?')">Delete</button>
-                                </form>
-                            </div>
-                        </td>
-                    </tr>
-                    @endforeach
-                </tbody>
-            </table>
-        </div>
-
-        <!-- Pagination -->
-        <div class="bg-white dark:bg-gray-800 px-4 py-3 border-t border-gray-200 dark:border-gray-700 sm:px-6">
-            {{ $transactions->withQueryString()->links() }}
+    <!-- Transactions Table -->
+    <div class="card shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Invoice</th>
+                            <th>Customer</th>
+                            <th>Branch</th>
+                            <th>Services</th>
+                            <th>Total Amount</th>
+                            <th>Status</th>
+                            <th>Created At</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($transactions as $transaction)
+                            <tr>
+                                <td class="fw-medium">{{ $transaction->invoice_number }}</td>
+                                <td>{{ $transaction->customer->name }}</td>
+                                <td>{{ $transaction->branch->name }}</td>
+                                <td>
+                                    @foreach($transaction->transactionServices as $transactionService)
+                                        <span class="badge bg-info">{{ $transactionService->service->name }}</span>
+                                    @endforeach
+                                </td>
+                                <td>Rp {{ number_format($transaction->total_amount, 0, ',', '.') }}</td>
+                                <td>
+                                    <span class="badge bg-{{ $transaction->status_color }}">
+                                        {{ ucfirst($transaction->status) }}
+                                    </span>
+                                </td>
+                                <td>{{ $transaction->created_at->format('d M Y H:i') }}</td>
+                                <td class="text-end">
+                                    <a href="{{ route('admin.transactions.show', $transaction) }}" 
+                                       class="btn btn-sm btn-outline-info me-2">
+                                        <i class="bi bi-eye"></i> View
+                                    </a>
+                                    @if($transaction->status !== 'completed' && $transaction->status !== 'cancelled')
+                                        <a href="{{ route('admin.transactions.edit', $transaction) }}" 
+                                           class="btn btn-sm btn-outline-primary me-2">
+                                            <i class="bi bi-pencil"></i> Edit
+                                        </a>
+                                    @endif
+                                    <form action="{{ route('admin.transactions.destroy', $transaction) }}" 
+                                          method="POST" 
+                                          class="d-inline-block"
+                                          onsubmit="return confirm('Are you sure you want to delete this transaction?');">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                                            <i class="bi bi-trash"></i> Delete
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="8" class="text-center py-4">No transactions found.</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
-</x-admin-layout> 
+
+    <!-- Pagination -->
+    <div class="mt-4">
+        {{ $transactions->links() }}
+    </div>
+</div>
+@endsection 

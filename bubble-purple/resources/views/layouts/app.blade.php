@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="h-full">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -12,169 +12,226 @@
         <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
 
         <!-- Scripts -->
-        @vite(['resources/css/app.css', 'resources/js/app.js'])
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+        <!-- Custom Styles -->
+        <style>
+            body {
+                background-color: #f8f9fa;
+            }
+            .navbar {
+                box-shadow: 0 2px 4px rgba(0,0,0,.1);
+            }
+            .card {
+                box-shadow: 0 1px 3px rgba(0,0,0,.1);
+            }
+            .navbar-brand {
+                font-weight: 600;
+                font-size: 1.5rem;
+                color: #6f42c1 !important;
+            }
+            .nav-link {
+                font-weight: 500;
+                padding: 0.5rem 1rem !important;
+                border-radius: 0.375rem;
+                transition: all 0.2s;
+            }
+            .nav-link:hover {
+                background-color: rgba(111, 66, 193, 0.1);
+            }
+            .nav-link.active {
+                background-color: #6f42c1;
+                color: white !important;
+            }
+            .dropdown-item:active {
+                background-color: #6f42c1;
+            }
+            .navbar-dark {
+                background-color: #2d2d2d !important;
+            }
+            .notification-badge {
+                position: absolute;
+                top: 0;
+                right: 0;
+                padding: 0.25rem 0.5rem;
+                font-size: 0.75rem;
+                line-height: 1;
+                border-radius: 0.375rem;
+            }
+        </style>
+
+        @stack('scripts')
     </head>
-    <body class="font-sans antialiased h-full">
-        <div class="min-h-screen bg-gray-100 dark:bg-gray-900">
-            <nav class="bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700">
-                <!-- Primary Navigation Menu -->
-                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div class="flex justify-between h-16">
-                        <div class="flex">
-                            <!-- Logo -->
-                            <div class="shrink-0 flex items-center">
-                                <a href="{{ route('welcome') }}" class="text-xl font-bold text-purple-600 dark:text-purple-400">
-                                    Bubble Purple
-                                </a>
-                            </div>
+    <body>
+        <div class="min-vh-100">
+            <!-- Navigation -->
+            <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+                <div class="container-fluid">
+                    <!-- Brand -->
+                    <a class="navbar-brand d-flex align-items-center" href="{{ url('/') }}">
+                        <i class="bi bi-droplet-fill me-2"></i>
+                        {{ config('app.name', 'Laravel') }}
+                    </a>
 
-                            <!-- Navigation Links -->
-                            <div class="hidden space-x-8 sm:-my-px sm:ml-10 sm:flex">
-                                @auth
-                                    @if(auth()->user()->role->name === 'admin')
-                                        <x-nav-link :href="route('admin.dashboard')" :active="request()->routeIs('admin.dashboard')">
-                                            {{ __('Dashboard') }}
-                                        </x-nav-link>
-                                    @elseif(auth()->user()->role->name === 'employee')
-                                        <x-nav-link :href="route('employee.dashboard')" :active="request()->routeIs('employee.dashboard')">
-                                            {{ __('Dashboard') }}
-                                        </x-nav-link>
-                                    @else
-                                        <x-nav-link :href="route('customer.dashboard')" :active="request()->routeIs('customer.dashboard')">
-                                            {{ __('Dashboard') }}
-                                        </x-nav-link>
-                                    @endif
-                                @endauth
-                            </div>
-                        </div>
+                    <!-- Mobile Toggle -->
+                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                        <span class="navbar-toggler-icon"></span>
+                    </button>
 
-                        <div class="hidden sm:flex sm:items-center sm:ml-6">
-                            <!-- Settings Dropdown -->
-                            <div class="ml-3 relative">
-                                @auth
-                                    <x-dropdown align="right" width="48">
-                                        <x-slot name="trigger">
-                                            <button class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none transition ease-in-out duration-150">
-                                                <div>{{ Auth::user()->name }}</div>
+                    <!-- Main Navigation -->
+                    <div class="collapse navbar-collapse" id="navbarNav">
+                        <ul class="navbar-nav">
+                            @auth
+                                @if(auth()->user()->isAdmin())
+                                    <!-- Admin Navigation -->
+                                    <li class="nav-item">
+                                        <a class="nav-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}" 
+                                           href="{{ route('admin.dashboard') }}">
+                                            <i class="bi bi-speedometer2 me-1"></i> Dashboard
+                                        </a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link {{ request()->routeIs('admin.customers.*') ? 'active' : '' }}" 
+                                           href="{{ route('admin.customers.index') }}">
+                                            <i class="bi bi-people me-1"></i> Customers
+                                        </a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link {{ request()->routeIs('admin.services.*') ? 'active' : '' }}" 
+                                           href="{{ route('admin.services.index') }}">
+                                            <i class="bi bi-box-seam me-1"></i> Services
+                                        </a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link {{ request()->routeIs('admin.branches.*') ? 'active' : '' }}" 
+                                           href="{{ route('admin.branches.index') }}">
+                                            <i class="bi bi-shop me-1"></i> Branches
+                                        </a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link {{ request()->routeIs('admin.transactions.*') ? 'active' : '' }}" 
+                                           href="{{ route('admin.transactions.index') }}">
+                                            <i class="bi bi-receipt me-1"></i> Transactions
+                                        </a>
+                                    </li>
+                                @endif
 
-                                                <div class="ml-1">
-                                                    <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
-                                                        <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
-                                                    </svg>
+                                @if(auth()->user()->isEmployee())
+                                    <!-- Employee Navigation -->
+                                    <li class="nav-item">
+                                        <a class="nav-link {{ request()->routeIs('employee.dashboard') ? 'active' : '' }}" 
+                                           href="{{ route('employee.dashboard') }}">
+                                            <i class="bi bi-speedometer2 me-1"></i> Dashboard
+                                        </a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link {{ request()->routeIs('employee.orders.*') ? 'active' : '' }}" 
+                                           href="{{ route('employee.orders.create') }}">
+                                            <i class="bi bi-plus-circle me-1"></i> New Order
+                                        </a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link {{ request()->routeIs('employee.transactions.*') ? 'active' : '' }}" 
+                                           href="{{ route('employee.transactions.index') }}">
+                                            <i class="bi bi-receipt me-1"></i> Transactions
+                                        </a>
+                                    </li>
+                                @endif
+                            @endauth
+                        </ul>
+
+                        <!-- Right Side Navigation -->
+                        <ul class="navbar-nav ms-auto">
+                            @guest
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{{ route('login') }}">
+                                        <i class="bi bi-box-arrow-in-right me-1"></i> Login
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{{ route('register') }}">
+                                        <i class="bi bi-person-plus me-1"></i> Register
+                                    </a>
+                                </li>
+                            @else
+                                <!-- Notifications -->
+                                <li class="nav-item me-3">
+                                    <a class="nav-link position-relative" href="#" role="button" data-bs-toggle="dropdown">
+                                        <i class="bi bi-bell fs-5"></i>
+                                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                            3
+                                            <span class="visually-hidden">unread notifications</span>
+                                        </span>
+                                    </a>
+                                    <div class="dropdown-menu dropdown-menu-end">
+                                        <h6 class="dropdown-header">Notifications</h6>
+                                        <a class="dropdown-item" href="#">
+                                            <div class="d-flex align-items-center">
+                                                <div class="flex-shrink-0">
+                                                    <i class="bi bi-receipt text-primary"></i>
                                                 </div>
-                                            </button>
-                                        </x-slot>
+                                                <div class="ms-2">
+                                                    <p class="mb-0">New order received</p>
+                                                    <small class="text-muted">3 minutes ago</small>
+                                                </div>
+                                            </div>
+                                        </a>
+                                        <div class="dropdown-divider"></div>
+                                        <a class="dropdown-item text-center" href="#">View all notifications</a>
+                                    </div>
+                                </li>
 
-                                        <x-slot name="content">
-                                            <x-dropdown-link :href="route('profile.edit')">
-                                                {{ __('Profile') }}
-                                            </x-dropdown-link>
-
-                                            <!-- Authentication -->
+                                <!-- User Menu -->
+                                <li class="nav-item dropdown">
+                                    <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" role="button" data-bs-toggle="dropdown">
+                                        <i class="bi bi-person-circle fs-5 me-2"></i>
+                                        {{ Auth::user()->name }}
+                                    </a>
+                                    <ul class="dropdown-menu dropdown-menu-end">
+                                        <li>
+                                            <a class="dropdown-item" href="{{ route('profile.edit') }}">
+                                                <i class="bi bi-person me-2"></i> Profile
+                                            </a>
+                                        </li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li>
                                             <form method="POST" action="{{ route('logout') }}">
                                                 @csrf
-                                                <x-dropdown-link :href="route('logout')"
-                                                        onclick="event.preventDefault();
-                                                                    this.closest('form').submit();">
-                                                    {{ __('Log Out') }}
-                                                </x-dropdown-link>
+                                                <button type="submit" class="dropdown-item text-danger">
+                                                    <i class="bi bi-box-arrow-right me-2"></i> Logout
+                                                </button>
                                             </form>
-                                        </x-slot>
-                                    </x-dropdown>
-                                @else
-                                    <div class="space-x-4">
-                                        <a href="{{ route('login') }}" class="text-sm text-gray-700 dark:text-gray-300 hover:text-purple-500 dark:hover:text-purple-400">Log in</a>
-                                        <a href="{{ route('register') }}" class="text-sm text-gray-700 dark:text-gray-300 hover:text-purple-500 dark:hover:text-purple-400">Register</a>
-                                    </div>
-                                @endauth
-                            </div>
-                        </div>
-
-                        <!-- Hamburger -->
-                        <div class="-mr-2 flex items-center sm:hidden">
-                            <button @click="open = ! open" class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 dark:text-gray-500 hover:text-gray-500 dark:hover:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-900 focus:outline-none focus:bg-gray-100 dark:focus:bg-gray-900 focus:text-gray-500 dark:focus:text-gray-400 transition duration-150 ease-in-out">
-                                <svg class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
-                                    <path :class="{'hidden': open, 'inline-flex': ! open }" class="inline-flex" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-                                    <path :class="{'hidden': ! open, 'inline-flex': open }" class="hidden" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Responsive Navigation Menu -->
-                <div :class="{'block': open, 'hidden': ! open}" class="hidden sm:hidden">
-                    <div class="pt-2 pb-3 space-y-1">
-                        @auth
-                            @if(auth()->user()->role->name === 'admin')
-                                <x-responsive-nav-link :href="route('admin.dashboard')" :active="request()->routeIs('admin.dashboard')">
-                                    {{ __('Dashboard') }}
-                                </x-responsive-nav-link>
-                            @elseif(auth()->user()->role->name === 'employee')
-                                <x-responsive-nav-link :href="route('employee.dashboard')" :active="request()->routeIs('employee.dashboard')">
-                                    {{ __('Dashboard') }}
-                                </x-responsive-nav-link>
-                            @else
-                                <x-responsive-nav-link :href="route('customer.dashboard')" :active="request()->routeIs('customer.dashboard')">
-                                    {{ __('Dashboard') }}
-                                </x-responsive-nav-link>
-                            @endif
-                        @endauth
-                    </div>
-
-                    <!-- Responsive Settings Options -->
-                    <div class="pt-4 pb-1 border-t border-gray-200 dark:border-gray-600">
-                        @auth
-                            <div class="px-4">
-                                <div class="font-medium text-base text-gray-800 dark:text-gray-200">{{ Auth::user()->name }}</div>
-                                <div class="font-medium text-sm text-gray-500">{{ Auth::user()->email }}</div>
-                            </div>
-
-                            <div class="mt-3 space-y-1">
-                                <x-responsive-nav-link :href="route('profile.edit')">
-                                    {{ __('Profile') }}
-                                </x-responsive-nav-link>
-
-                                <!-- Authentication -->
-                                <form method="POST" action="{{ route('logout') }}">
-                                    @csrf
-                                    <x-responsive-nav-link :href="route('logout')"
-                                            onclick="event.preventDefault();
-                                                        this.closest('form').submit();">
-                                        {{ __('Log Out') }}
-                                    </x-responsive-nav-link>
-                                </form>
-                            </div>
-                        @else
-                            <div class="px-4 py-2 space-y-1">
-                                <x-responsive-nav-link :href="route('login')">
-                                    {{ __('Log in') }}
-                                </x-responsive-nav-link>
-                                <x-responsive-nav-link :href="route('register')">
-                                    {{ __('Register') }}
-                                </x-responsive-nav-link>
-                            </div>
-                        @endauth
+                                        </li>
+                                    </ul>
+                                </li>
+                            @endguest
+                        </ul>
                     </div>
                 </div>
             </nav>
 
-            <!-- Page Heading -->
-            @if (isset($header))
-                <header class="bg-white dark:bg-gray-800 shadow">
-                    <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-                        {{ $header }}
-                    </div>
-                </header>
-            @endif
-
             <!-- Page Content -->
-            <main>
-                {{ $slot }}
+            <main class="py-4">
+                @if(session('success'))
+                    <div class="container">
+                        <div class="alert alert-success">
+                            {{ session('success') }}
+                        </div>
+                    </div>
+                @endif
+
+                @if(session('error'))
+                    <div class="container">
+                        <div class="alert alert-danger">
+                            {{ session('error') }}
+                        </div>
+                    </div>
+                @endif
+
+                @yield('content')
             </main>
         </div>
-
-        <!-- Scripts -->
-        @stack('scripts')
     </body>
 </html>

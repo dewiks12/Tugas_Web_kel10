@@ -2,40 +2,35 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Branch extends Model
 {
+    use HasFactory, SoftDeletes;
+
     protected $fillable = [
         'name',
         'slug',
-        'code',
         'address',
         'phone',
-        'is_active',
+        'is_active'
     ];
 
     protected $casts = [
-        'is_active' => 'boolean',
+        'is_active' => 'boolean'
     ];
 
-    public function users()
+    public function employees()
     {
-        return $this->hasMany(User::class);
-    }
-
-    public function targets()
-    {
-        return $this->hasMany(LaundryTarget::class);
+        return $this->hasMany(User::class)->whereHas('role', function($query) {
+            $query->where('name', 'employee');
+        });
     }
 
     public function transactions()
     {
         return $this->hasMany(Transaction::class);
-    }
-
-    public function customers()
-    {
-        return $this->hasMany(Customer::class);
     }
 }

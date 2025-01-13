@@ -22,6 +22,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'role',
         'role_id',
         'branch_id',
         'is_active',
@@ -81,7 +82,7 @@ class User extends Authenticatable
      */
     public function hasRole(string $roleName): bool
     {
-        return $this->role && $this->role->name === $roleName;
+        return $this->role()->where('name', $roleName)->exists();
     }
 
     /**

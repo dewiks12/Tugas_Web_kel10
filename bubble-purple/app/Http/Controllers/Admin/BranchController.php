@@ -5,111 +5,120 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Branch;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class BranchController extends Controller
 {
-    /**
-     * Display a listing of the branches.
-     */
-    public function index(Request $request)
+    public function index()
     {
-        $query = Branch::query();
-
-        // Apply search filter
-        if ($request->has('search')) {
-            $search = $request->get('search');
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('code', 'like', "%{$search}%")
-                  ->orWhere('address', 'like', "%{$search}%");
-            });
-        }
-
-        // Apply status filter
-        if ($request->has('status') && $request->get('status') !== '') {
-            $query->where('is_active', $request->get('status'));
-        }
-
-        // Get paginated results
-        $branches = $query->latest()->paginate(10);
-
+        $branches = Branch::latest()->paginate(10);
         return view('admin.branches.index', compact('branches'));
     }
 
-    /**
-     * Show the form for creating a new branch.
-     */
     public function create()
     {
-        return view('admin.branches.form');
+        return view('admin.branches.create');
     }
 
-    /**
-     * Store a newly created branch in storage.
-     */
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'code' => ['required', 'string', 'max:50', 'unique:branches'],
-            'address' => ['required', 'string'],
-            'phone' => ['required', 'string', 'max:20'],
-            'is_active' => ['boolean'],
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'address' => 'required|string|max:500',
+            'phone' => 'required|string|max:20',
+            'is_active' => 'required|boolean'
         ]);
 
-        // Set default values
-        $validated['is_active'] = $request->has('is_active');
-        $validated['slug'] = Str::slug($validated['name']);
+        try {
+            DB::beginTransaction();
 
-        Branch::create($validated);
+            $branch = Branch::create([
+                'name' => $request->name,
+                'address' => $request->address,
+                'phone' => $request->phone,
+                'is_active' => $request->is_active
+            ]);
 
-        return redirect()
-            ->route('admin.branches.index')
-            ->with('success', 'Branch created successfully.');
+            DB::commit();
+
+            Log::info('Branch created successfully', ['branch_id' => $branch->id]);
+            return redirect()->route('admin.branches.index')
+                ->with('success', 'Branch created successfully.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Failed to create branch', ['error' => $e->getMessage()]);
+            return back()->withInput()
+                ->with('error', 'Failed to create branch. ' . $e->getMessage());
+        }
     }
 
-    /**
-     * Show the form for editing the specified branch.
-     */
     public function edit(Branch $branch)
     {
-        return view('admin.branches.form', compact('branch'));
+        return view('admin.branches.edit', compact('branch'));
     }
 
-    /**
-     * Update the specified branch in storage.
-     */
     public function update(Request $request, Branch $branch)
     {
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'code' => ['required', 'string', 'max:50', 'unique:branches,code,' . $branch->id],
-            'address' => ['required', 'string'],
-            'phone' => ['required', 'string', 'max:20'],
-            'is_active' => ['boolean'],
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'address' => 'required|string|max:500',
+            'phone' => 'required|string|max:20',
+            'is_active' => 'required|boolean'
         ]);
 
-        // Set default values
-        $validated['is_active'] = $request->has('is_active');
-        $validated['slug'] = Str::slug($validated['name']);
+        try {
+            DB::beginTransaction();
 
-        $branch->update($validated);
+            $branch->update([
+                'name' => $request->name,
+                'address' => $request->address,
+                'phone' => $request->phone,
+                'is_active' => $request->is_active
+            ]);
 
-        return redirect()
-            ->route('admin.branches.index')
-            ->with('success', 'Branch updated successfully.');
+            DB::commit();
+
+            Log::info('Branch updated successfully', ['branch_id' => $branch->id]);
+            return redirect()->route('admin.branches.index')
+                ->with('success', 'Branch updated successfully.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Failed to update branch', [
+                'branch_id' => $branch->id,
+                'error' => $e->getMessage()
+            ]);
+            return back()->withInput()
+                ->with('error', 'Failed to update branch. ' . $e->getMessage());
+        }
     }
 
-    /**
-     * Remove the specified branch from storage.
-     */
     public function destroy(Branch $branch)
     {
-        $branch->delete();
+        try {
+            DB::beginTransaction();
 
-        return redirect()
-            ->route('admin.branches.index')
-            ->with('success', 'Branch deleted successfully.');
+            // Check if branch has any transactions
+            if ($branch->transactions()->exists()) {
+                // Soft delete by deactivating
+                $branch->update(['is_active' => false]);
+            } else {
+                // Hard delete if no transactions
+                $branch->delete();
+            }
+
+            DB::commit();
+
+            Log::info('Branch deleted successfully', ['branch_id' => $branch->id]);
+            return redirect()->route('admin.branches.index')
+                ->with('success', 'Branch deleted successfully.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Failed to delete branch', [
+                'branch_id' => $branch->id,
+                'error' => $e->getMessage()
+            ]);
+            return back()->with('error', 'Failed to delete branch. ' . $e->getMessage());
+        }
     }
 }

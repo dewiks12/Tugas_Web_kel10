@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Transaction;
 use App\Models\Branch;
+use App\Models\Transaction;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -13,38 +13,26 @@ class DashboardController extends Controller
 {
     public function index()
     {
-        // Get all transactions
-        $recentTransactions = Transaction::with(['customer', 'branch', 'transactionServices.service'])
-            ->latest()
-            ->take(10)
-            ->get();
+        // Customer statistics
+        $totalCustomers = User::whereHas('role', function($query) {
+            $query->where('name', 'customer');
+        })->count();
+
+        // Branch statistics
+        $activeBranches = Branch::where('is_active', true)->count();
 
         // Transaction statistics
-        $totalTransactions = Transaction::count();
-        $pendingTransactions = Transaction::where('status', 'pending')->count();
-        $processingTransactions = Transaction::where('status', 'processing')->count();
-        $completedTransactions = Transaction::where('status', 'completed')->count();
-
-        // Financial statistics
+        $totalOrders = Transaction::count();
         $totalRevenue = Transaction::where('status', 'completed')->sum('total_amount');
         $monthlyRevenue = Transaction::where('status', 'completed')
             ->whereMonth('created_at', Carbon::now()->month)
             ->sum('total_amount');
 
-        // Branch statistics
-        $branchRevenue = Branch::withSum(['transactions' => function($query) {
-            $query->where('status', 'completed');
-        }], 'total_amount')
-            ->withCount(['transactions as pending_count' => function($query) {
-                $query->where('status', 'pending');
-            }])
-            ->withCount(['transactions as processing_count' => function($query) {
-                $query->where('status', 'processing');
-            }])
-            ->withCount(['transactions as completed_count' => function($query) {
-                $query->where('status', 'completed');
-            }])
-            ->get();
+        // Status counts
+        $pendingOrders = Transaction::where('status', 'pending')->count();
+        $processingOrders = Transaction::where('status', 'processing')->count();
+        $completedOrders = Transaction::where('status', 'completed')->count();
+        $cancelledOrders = Transaction::where('status', 'cancelled')->count();
 
         // Monthly trend
         $monthlyTrend = Transaction::where('status', 'completed')
@@ -58,16 +46,35 @@ class DashboardController extends Controller
             ->orderBy('month')
             ->get();
 
+        // Branch performance
+        $branchPerformance = Branch::withCount(['transactions as completed_orders' => function($query) {
+                $query->where('status', 'completed');
+            }])
+            ->withSum(['transactions as total_revenue' => function($query) {
+                $query->where('status', 'completed');
+            }], 'total_amount')
+            ->where('is_active', true)
+            ->get();
+
+        // Recent orders
+        $recentOrders = Transaction::with(['customer', 'branch'])
+            ->latest()
+            ->take(10)
+            ->get();
+
         return view('admin.dashboard', compact(
-            'recentTransactions',
-            'totalTransactions',
-            'pendingTransactions',
-            'processingTransactions',
-            'completedTransactions',
+            'totalCustomers',
+            'activeBranches',
+            'totalOrders',
             'totalRevenue',
             'monthlyRevenue',
-            'branchRevenue',
-            'monthlyTrend'
+            'pendingOrders',
+            'processingOrders',
+            'completedOrders',
+            'cancelledOrders',
+            'monthlyTrend',
+            'branchPerformance',
+            'recentOrders'
         ));
     }
 }

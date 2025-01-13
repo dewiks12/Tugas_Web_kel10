@@ -80,6 +80,9 @@ Route::middleware(['auth'])->group(function () {
 
         // Service Management
         Route::resource('services', App\Http\Controllers\Admin\ServiceController::class);
+
+        // Branch Management
+        Route::resource('branches', BranchController::class);
     });
 
     // Employee Routes
@@ -108,3 +111,19 @@ Route::middleware(['auth'])->group(function () {
 });
 
 require __DIR__.'/auth.php';
+require __DIR__.'/auth.php';
+
+// Admin routes
+Route::prefix('admin')
+    ->middleware(['auth', 'role:admin'])
+    ->group(base_path('routes/admin/web.php'));
+
+// Employee routes
+Route::prefix('employee')
+    ->middleware(['auth', 'role:employee'])
+    ->group(base_path('routes/employee/web.php'));
+
+// Customer routes
+Route::prefix('customer')
+    ->middleware(['auth', 'role:customer'])
+    ->group(base_path('routes/customer/web.php'));

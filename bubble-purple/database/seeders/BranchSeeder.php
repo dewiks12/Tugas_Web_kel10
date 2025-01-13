@@ -4,7 +4,6 @@ namespace Database\Seeders;
 
 use App\Models\Branch;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Str;
 
 class BranchSeeder extends Seeder
 {
@@ -12,10 +11,9 @@ class BranchSeeder extends Seeder
     {
         Branch::create([
             'name' => 'Main Branch',
-            'slug' => 'main-branch',
-            'code' => 'MB001',
-            'address' => 'Jl. Raya Utama No. 1',
-            'phone' => '021-1234567',
+            'code' => 'MAIN',
+            'address' => 'Main Street 123',
+            'phone' => '123456789',
             'is_active' => true,
         ]);
     }
